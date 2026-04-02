@@ -9,7 +9,9 @@ import MessageList, { type MessageListRef } from '@/components/chat/MessageList'
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import InputBox from '@/components/InputBox/InputBox'
 import Header from '@/components/layout/Header'
+import { PluginSessionUI } from '@/components/plugins/PluginSessionUI'
 import ThreadHistoryDrawer from '@/components/session/ThreadHistoryDrawer'
+import { pluginController } from '@/packages/plugins/controller'
 import * as remote from '@/packages/remote'
 import { updateSession as updateSessionStore, useSession } from '@/stores/chatStore'
 import { lastUsedModelStore } from '@/stores/lastUsedModelStore'
@@ -165,8 +167,26 @@ function RouteComponent() {
     }
   }, [currentSession?.settings?.provider, currentSession?.settings?.modelId])
 
-  return currentSession ? (
-    <div className="flex flex-col h-full">
+  // Determine which plugins have been activated by tool calls in this session
+  const activePluginIds = useMemo(() => {
+    if (!currentSession) return []
+    const allMessages = getAllMessageList(currentSession)
+    const ids = new Set<string>()
+    for (const msg of allMessages) {
+      for (const part of msg.contentParts) {
+        if (part.type === 'tool-call' && pluginController.isPluginTool(part.toolName)) {
+          const manifest = pluginController.getManifestForTool(part.toolName)
+          if (manifest) ids.add(manifest.id)
+        }
+      }
+    }
+    return [...ids]
+  }, [currentSession])
+
+  const hasActivePlugins = activePluginIds.length > 0
+
+  const chatPanel = (
+    <div className={hasActivePlugins ? 'flex flex-col h-full min-w-0 flex-1' : 'flex flex-col h-full'}>
       <Header session={currentSession} />
 
       {/* MessageList 设置 key，确保每个 session 对应新的 MessageList 实例 */}
@@ -190,6 +210,23 @@ function RouteComponent() {
       </ErrorBoundary>
       <ThreadHistoryDrawer session={currentSession} />
     </div>
+  )
+
+  return currentSession ? (
+    hasActivePlugins ? (
+      <div className="flex h-full">
+        {/* Plugin panel — takes up ~60% of the width */}
+        <div className="flex flex-col h-full" style={{ flex: '0 0 60%' }}>
+          {activePluginIds.map((pluginId) => (
+            <PluginSessionUI key={pluginId} pluginId={pluginId} />
+          ))}
+        </div>
+        {/* Chat panel — takes remaining ~40% */}
+        {chatPanel}
+      </div>
+    ) : (
+      chatPanel
+    )
   ) : (
     !isFetching && (
       <div className="flex flex-1 flex-col items-center justify-center min-h-[60vh]">

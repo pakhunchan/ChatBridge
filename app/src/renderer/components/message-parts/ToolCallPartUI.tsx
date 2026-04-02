@@ -23,9 +23,11 @@ import { type FC, useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { formatElapsedTime, useThinkingTimer } from '@/hooks/useThinkingTimer'
+import { pluginController } from '@/packages/plugins/controller'
 import { getToolName } from '@/packages/tools'
 import type { SearchResultItem } from '@/packages/web-search'
 import { ScalableIcon } from '../common/ScalableIcon'
+import { PluginToolCallPill } from '../plugins/PluginToolCallPill'
 
 // ─── Tool Icon Mapping ──────────────────────────────────────────────
 
@@ -419,6 +421,9 @@ export const ToolCallPartUI: FC<{ part: MessageToolCallPart }> = ({ part }) => {
   }
   if (part.toolName === 'parse_link') {
     return <ParseLinkUI part={part} />
+  }
+  if (pluginController.isPluginTool(part.toolName)) {
+    return <PluginToolCallPill part={part} />
   }
   return <GeneralToolCallUI part={part} />
 }
