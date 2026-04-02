@@ -1,4 +1,5 @@
 import { Chess } from 'chess.js'
+import { type Difficulty, findBestMove } from './ai'
 
 export interface GameState {
   fen: string
@@ -10,6 +11,7 @@ export interface GameState {
   isDraw: boolean
   isGameOver: boolean
   lastMove?: string
+  difficulty: Difficulty
 }
 
 export interface MoveResult extends GameState {
@@ -26,6 +28,7 @@ export interface StartResult extends GameState {
 
 let game = new Chess()
 let playerColor: 'white' | 'black' = 'white'
+let difficulty: Difficulty = 'medium'
 
 export function getState(): GameState {
   return {
@@ -37,18 +40,29 @@ export function getState(): GameState {
     isStalemate: game.isStalemate(),
     isDraw: game.isDraw(),
     isGameOver: game.isGameOver(),
+    difficulty,
   }
 }
 
-export function startGame(args: { playerColor?: string }): StartResult {
+export function startGame(args: { playerColor?: string; difficulty?: string }): StartResult {
   game = new Chess()
   playerColor = (args.playerColor === 'black' ? 'black' : 'white')
+  if (args.difficulty && ['easy', 'medium', 'hard'].includes(args.difficulty)) {
+    difficulty = args.difficulty as Difficulty
+  }
   return {
     success: true,
     playerColor,
-    message: `Game started! ${playerColor === 'white' ? 'White' : 'Black'} to move.`,
+    message: `Game started on ${difficulty} difficulty! You are playing ${playerColor}.`,
     ...getState(),
   }
+}
+
+export function setDifficulty(args: { difficulty: string }): { success: true; difficulty: Difficulty; message: string } {
+  if (['easy', 'medium', 'hard'].includes(args.difficulty)) {
+    difficulty = args.difficulty as Difficulty
+  }
+  return { success: true, difficulty, message: `Difficulty set to ${difficulty}.` }
 }
 
 export function getBoard(): GameState {
@@ -90,6 +104,10 @@ export function getPlayerColor(): 'white' | 'black' {
   return playerColor
 }
 
+export function getDifficulty(): Difficulty {
+  return difficulty
+}
+
 // Make a move by source/target squares (for drag-and-drop)
 export function movePiece(sourceSquare: string, targetSquare: string, piece: string): boolean {
   try {
@@ -102,4 +120,19 @@ export function movePiece(sourceSquare: string, targetSquare: string, piece: str
   } catch {
     return false
   }
+}
+
+/**
+ * Play the engine's move (for the non-player side).
+ * Returns the move result, or null if it's not the engine's turn or game is over.
+ */
+export function playEngineMove(): MoveResult | null {
+  if (game.isGameOver()) return null
+  const engineColor = playerColor === 'white' ? 'b' : 'w'
+  if (game.turn() !== engineColor) return null
+
+  const bestMove = findBestMove(game, difficulty)
+  if (!bestMove) return null
+
+  return makeMove({ move: bestMove })
 }

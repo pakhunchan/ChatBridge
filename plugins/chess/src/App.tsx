@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Chessboard } from 'react-chessboard'
 import { initBridge, sendStateUpdate } from './bridge'
-import { getGame, getPlayerColor, getState, movePiece, startGame } from './engine'
+import { getGame, getPlayerColor, getState, movePiece, playEngineMove, startGame } from './engine'
 import type { GameState } from './engine'
 
 const PLUGIN_ID = 'chess'
@@ -22,18 +22,34 @@ export default function App() {
 
   // Listen for tool-invoke results that change game state (e.g., LLM calls chess_start_game)
   useEffect(() => {
-    const handler = () => setGameState(getState())
-    window.addEventListener('message', (event) => {
+    const onMessage = (event: MessageEvent) => {
       if (event.data?.type === 'tool-invoke') {
         // State will change after bridge handles the invoke — refresh on next tick
-        setTimeout(handler, 0)
+        // then let the engine play if it's the engine's turn
+        setTimeout(() => {
+          setGameState(getState())
+          scheduleEngineMove()
+        }, 0)
       }
-    })
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [])
+
+  const scheduleEngineMove = useCallback(() => {
+    // Small delay so the user sees their move first
+    setTimeout(() => {
+      const result = playEngineMove()
+      if (result) {
+        setGameState(getState())
+        sendStateUpdate(PLUGIN_ID)
+      }
+    }, 300)
   }, [])
 
   const onDrop = useCallback((sourceSquare: string, targetSquare: string, piece: string) => {
     // In standalone mode (no parent iframe), allow both sides for testing.
-    // When embedded, the LLM plays the opposite side via tool calls.
+    // When embedded, only allow the player's side.
     const isEmbedded = window.parent !== window
     if (isEmbedded) {
       const playerTurn = getPlayerColor() === 'white' ? 'w' : 'b'
@@ -44,9 +60,11 @@ export default function App() {
     if (success) {
       setGameState(getState())
       sendStateUpdate(PLUGIN_ID)
+      // Let the engine play its response
+      scheduleEngineMove()
     }
     return success
-  }, [])
+  }, [scheduleEngineMove])
 
   // Responsive board size
   const containerRef = useCallback((node: HTMLDivElement | null) => {
@@ -89,6 +107,7 @@ export default function App() {
       <div style={{ color: '#e0e0e0', fontSize: 14, fontFamily: 'system-ui, sans-serif' }}>
         {statusText}
         {gameState.moveNumber > 1 && ` • Move ${gameState.moveNumber}`}
+        {' • '}{gameState.difficulty}
       </div>
       <Chessboard
         id="chess-board"

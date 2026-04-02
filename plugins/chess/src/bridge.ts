@@ -2,7 +2,7 @@
  * PostMessage bridge — connects the chess app to the ChatBridge platform.
  * Listens for tool-invoke messages, routes to engine handlers, sends results back.
  */
-import { getBoard, getMoves, makeMove, resign, startGame, getState } from './engine'
+import { getBoard, getMoves, makeMove, resign, setDifficulty, startGame, getState } from './engine'
 
 interface ToolInvokeMessage {
   type: 'tool-invoke'
@@ -14,10 +14,11 @@ interface ToolInvokeMessage {
 type ToolHandler = (args: Record<string, unknown>) => unknown
 
 const toolHandlers: Record<string, ToolHandler> = {
-  chess_start_game: (args) => startGame(args as { playerColor?: string }),
+  chess_start_game: (args) => startGame(args as { playerColor?: string; difficulty?: string }),
   chess_get_board: () => getBoard(),
   chess_make_move: (args) => makeMove(args as { move: string }),
   chess_get_moves: (args) => getMoves(args as { square?: string }),
+  chess_set_difficulty: (args) => setDifficulty(args as { difficulty: string }),
   chess_resign: () => resign(),
 }
 
