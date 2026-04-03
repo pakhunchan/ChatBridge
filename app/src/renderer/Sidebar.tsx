@@ -6,6 +6,7 @@ import {
   IconHelpCircle,
   IconInfoCircle,
   IconLayoutSidebarLeftCollapse,
+  IconLogout,
   IconMessageChatbot,
   IconPhotoPlus,
   IconSettingsFilled,
@@ -31,6 +32,9 @@ import icon from './static/icon.png'
 import { settingsStore, useLanguage } from './stores/settingsStore'
 import { taskSessionStore } from './stores/taskSessionStore'
 import { useUIStore } from './stores/uiStore'
+import { signOut } from 'firebase/auth'
+import { auth } from '@/packages/firebase/config'
+import { firebaseAuthStore } from '@/stores/firebaseAuthStore'
 import { CHATBOX_BUILD_PLATFORM } from './variables'
 
 export default function Sidebar() {
@@ -49,6 +53,12 @@ export default function Sidebar() {
   const sidebarWidth = useSidebarWidth()
 
   const isSmallScreen = useIsSmallScreen()
+
+  const handleLogout = useCallback(async () => {
+    await signOut(auth)
+    firebaseAuthStore.getState().clear()
+    navigate({ to: '/login' })
+  }, [navigate])
 
   const [isResizing, setIsResizing] = useState(false)
   const resizeStartX = useRef<number>(0)
@@ -286,6 +296,14 @@ export default function Sidebar() {
               >
                 <ScalableIcon icon={IconSettingsFilled} size={20} />
               </ActionIcon>
+              <ActionIcon
+                variant="transparent"
+                color="chatbox-secondary"
+                size={24}
+                onClick={handleLogout}
+              >
+                <ScalableIcon icon={IconLogout} size={20} />
+              </ActionIcon>
 
               {/* <Text
                 c="chatbox-tertiary"
@@ -362,6 +380,15 @@ export default function Sidebar() {
                 }
                 leftSection={<ScalableIcon icon={IconInfoCircle} size={20} />}
                 onClick={() => navigate({ to: '/about' })}
+                variant="light"
+                p="xs"
+              />
+              <NavLink
+                c="chatbox-tertiary"
+                className="rounded"
+                label="Sign Out"
+                leftSection={<ScalableIcon icon={IconLogout} size={20} />}
+                onClick={handleLogout}
                 variant="light"
                 p="xs"
               />
