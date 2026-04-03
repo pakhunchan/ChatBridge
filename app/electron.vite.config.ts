@@ -259,6 +259,12 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 1212,
         strictPort: true,
+        proxy: {
+          '/api': {
+            target: 'https://chatbridge.pakhunchan.com',
+            changeOrigin: true,
+          },
+        },
       },
       define: {
         'process.type': '"renderer"',

@@ -5,7 +5,7 @@ export const chessManifest: PluginManifest = {
   name: 'Chess',
   description:
     'The user is playing chess against a built-in engine in an embedded app. You are a chess coach/advisor. Use these tools to start games, set difficulty, and query the board state so you can offer advice. The engine plays the opponent automatically — do NOT try to make moves for either side unless the user explicitly asks.',
-  iframeUrl: 'http://localhost:5173',
+  iframeUrl: import.meta.env.DEV ? 'http://localhost:5173' : 'https://chatbridge-chess.pakhunchan.com',
   authType: 'none',
   tools: [
     {
