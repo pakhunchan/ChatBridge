@@ -5,6 +5,14 @@
     {
       "source": "/demo-video",
       "destination": "http://chatbridge.pakhunchan.com.s3-website-us-east-1.amazonaws.com/demo-video"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
     }
   ]
 }
