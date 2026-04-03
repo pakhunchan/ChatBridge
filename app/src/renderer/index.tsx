@@ -34,6 +34,9 @@ import './setup/global_error_handler'
 // GA4 初始化
 import './setup/ga_init'
 
+// Firebase auth listener
+import './setup/firebase_auth_bootstrap'
+
 // 引入保护代码
 import './setup/protect'
 import { QueryClientProvider } from '@tanstack/react-query'

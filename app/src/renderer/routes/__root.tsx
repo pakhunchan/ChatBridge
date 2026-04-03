@@ -61,6 +61,7 @@ import { initOnboardingStore, onboardingStore } from '@/stores/onboardingStore'
 import * as premiumActions from '@/stores/premiumActions'
 import * as settingActions from '@/stores/settingActions'
 import { initSettingsStore, settingsStore, useLanguage, useSettingsStore, useTheme } from '@/stores/settingsStore'
+import { useFirebaseAuthStore } from '@/stores/firebaseAuthStore'
 import { useUIStore } from '@/stores/uiStore'
 import { CHATBOX_BUILD_CHANNEL, CHATBOX_BUILD_PLATFORM } from '@/variables'
 import { blobToDataUrl } from './image-creator/-components/constants'
@@ -139,6 +140,16 @@ function Root() {
   const setOpenAboutDialog = useUIStore((s) => s.setOpenAboutDialog)
 
   const setRemoteConfig = useSetAtom(atoms.remoteConfigAtom)
+
+  // Auth guard: redirect to /login if not authenticated
+  const isAuthenticated = useFirebaseAuthStore((s) => s.isAuthenticated)
+  const isAuthLoading = useFirebaseAuthStore((s) => s.isLoading)
+  useEffect(() => {
+    if (isAuthLoading) return
+    if (!isAuthenticated && location.pathname !== '/login') {
+      router.navigate({ to: '/login', replace: true })
+    }
+  }, [isAuthenticated, isAuthLoading, location.pathname])
 
   useEffect(() => {
     if (initialized.current) {
