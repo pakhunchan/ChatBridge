@@ -32,10 +32,18 @@ export default async function handler(req: Request): Promise<Response> {
       })
     }
 
+    // Decode token to check issuer before verification
+    const parts = firebaseToken.split('.')
+    const tokenPayload = JSON.parse(atob(parts[1]))
+
     // Verify the Firebase ID token using Google's public keys
     const { payload } = await jwtVerify(firebaseToken, GOOGLE_JWKS, {
       issuer: `https://securetoken.google.com/${firebaseProjectId}`,
       audience: firebaseProjectId,
+    }).catch((err) => {
+      throw new Error(
+        `${err.message} | expected iss: https://securetoken.google.com/${firebaseProjectId} | actual iss: ${tokenPayload.iss} | projectId: ${firebaseProjectId}`,
+      )
     })
 
     const uid = payload.sub
