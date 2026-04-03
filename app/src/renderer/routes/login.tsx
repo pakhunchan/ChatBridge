@@ -7,7 +7,7 @@ import {
   signInWithPopup,
 } from 'firebase/auth'
 import { auth, googleProvider } from '@/packages/firebase/config'
-import { supabase } from '@/packages/supabase/config'
+import { supabase, exchangeFirebaseToken } from '@/packages/supabase/config'
 import { firebaseAuthStore } from '@/stores/firebaseAuthStore'
 import { router } from '@/router'
 import { settingsStore } from '@/stores/settingsStore'
@@ -33,6 +33,7 @@ function LoginPage() {
       const fn = isSignUp ? createUserWithEmailAndPassword : signInWithEmailAndPassword
       const result = await fn(auth, email, password)
       firebaseAuthStore.getState().setUser(result.user)
+      await exchangeFirebaseToken(await result.user.getIdToken())
       await syncUserToSupabase(result.user.uid, result.user.email)
       router.navigate({ to: '/', replace: true })
     } catch (err: unknown) {
@@ -49,6 +50,7 @@ function LoginPage() {
     try {
       const result = await signInWithPopup(auth, googleProvider)
       firebaseAuthStore.getState().setUser(result.user)
+      await exchangeFirebaseToken(await result.user.getIdToken())
       await syncUserToSupabase(result.user.uid, result.user.email)
       router.navigate({ to: '/', replace: true })
     } catch (err: unknown) {
@@ -71,6 +73,7 @@ function LoginPage() {
         result = await createUserWithEmailAndPassword(auth, DEMO_USER_EMAIL, DEMO_USER_PASSWORD)
       }
       firebaseAuthStore.getState().setUser(result.user)
+      await exchangeFirebaseToken(await result.user.getIdToken())
       await syncUserToSupabase(result.user.uid, result.user.email)
 
       // Load the demo user's API key into settings
