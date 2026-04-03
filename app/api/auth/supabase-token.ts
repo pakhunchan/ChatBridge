@@ -13,7 +13,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET
-  const firebaseProjectId = process.env.VITE_FIREBASE_PROJECT_ID
+  const firebaseProjectId = process.env.FIREBASE_PROJECT_ID
 
   if (!supabaseJwtSecret || !firebaseProjectId) {
     return new Response(JSON.stringify({ error: 'Server misconfigured' }), {
