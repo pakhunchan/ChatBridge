@@ -12,8 +12,8 @@ export default async function handler(req: Request): Promise<Response> {
     })
   }
 
-  const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET
-  const firebaseProjectId = process.env.FIREBASE_PROJECT_ID
+  const supabaseJwtSecret = process.env.SUPABASE_JWT_SECRET?.trim()
+  const firebaseProjectId = process.env.FIREBASE_PROJECT_ID?.trim()
 
   if (!supabaseJwtSecret || !firebaseProjectId) {
     return new Response(JSON.stringify({ error: 'Server misconfigured' }), {
@@ -61,6 +61,7 @@ export default async function handler(req: Request): Promise<Response> {
     const supabaseToken = await new SignJWT({
       sub: uid,
       role: 'authenticated',
+      aud: 'authenticated',
       iss: 'supabase',
       iat: now,
       exp: now + 3600, // 1 hour
