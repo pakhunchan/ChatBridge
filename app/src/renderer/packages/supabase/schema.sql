@@ -13,13 +13,17 @@ CREATE TABLE IF NOT EXISTS users (
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can read own data" ON users
-  FOR SELECT USING (id = current_setting('request.jwt.claims', true)::json->>'sub');
+  FOR SELECT TO authenticated
+  USING (id = current_setting('request.jwt.claims', true)::json->>'sub');
 
 CREATE POLICY "Users can update own data" ON users
-  FOR UPDATE USING (id = current_setting('request.jwt.claims', true)::json->>'sub');
+  FOR UPDATE TO authenticated
+  USING (id = current_setting('request.jwt.claims', true)::json->>'sub')
+  WITH CHECK (id = current_setting('request.jwt.claims', true)::json->>'sub');
 
 CREATE POLICY "Users can insert own data" ON users
-  FOR INSERT WITH CHECK (true);
+  FOR INSERT TO authenticated
+  WITH CHECK (id = current_setting('request.jwt.claims', true)::json->>'sub');
 
 -- API Keys table
 CREATE TABLE IF NOT EXISTS api_keys (
@@ -34,7 +38,9 @@ CREATE TABLE IF NOT EXISTS api_keys (
 ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can manage own API keys" ON api_keys
-  FOR ALL USING (user_id = current_setting('request.jwt.claims', true)::json->>'sub');
+  FOR ALL TO authenticated
+  USING (user_id = current_setting('request.jwt.claims', true)::json->>'sub')
+  WITH CHECK (user_id = current_setting('request.jwt.claims', true)::json->>'sub');
 
 -- Chat sessions table
 CREATE TABLE IF NOT EXISTS sessions (
@@ -50,7 +56,9 @@ CREATE TABLE IF NOT EXISTS sessions (
 ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can manage own sessions" ON sessions
-  FOR ALL USING (user_id = current_setting('request.jwt.claims', true)::json->>'sub');
+  FOR ALL TO authenticated
+  USING (user_id = current_setting('request.jwt.claims', true)::json->>'sub')
+  WITH CHECK (user_id = current_setting('request.jwt.claims', true)::json->>'sub');
 
 -- Messages table
 CREATE TABLE IF NOT EXISTS messages (
@@ -68,10 +76,19 @@ CREATE TABLE IF NOT EXISTS messages (
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can manage own messages" ON messages
-  FOR ALL USING (
-    session_id IN (
-      SELECT id FROM sessions
-      WHERE user_id = current_setting('request.jwt.claims', true)::json->>'sub'
+  FOR ALL TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM sessions s
+      WHERE s.id = messages.session_id
+        AND s.user_id = current_setting('request.jwt.claims', true)::json->>'sub'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM sessions s
+      WHERE s.id = messages.session_id
+        AND s.user_id = current_setting('request.jwt.claims', true)::json->>'sub'
     )
   );
 

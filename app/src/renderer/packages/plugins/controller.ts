@@ -37,6 +37,7 @@ class PluginController {
   private stateUpdateListeners = new Set<StateUpdateListener>()
   private changeListeners = new Set<PluginChangeListener>()
   private activePlugins = new Set<string>()
+  private earlyReadyPlugins = new Set<string>()
 
   registerManifest(manifest: PluginManifest) {
     this.manifests.set(manifest.id, manifest)
@@ -84,11 +85,18 @@ class PluginController {
   // --- Iframe lifecycle ---
 
   registerIframe(pluginId: string, iframeWindow: Window, origin: string) {
-    this.iframeSessions.set(pluginId, { window: iframeWindow, origin, ready: false })
+    // If the iframe already sent 'ready' before the load event fired,
+    // mark the session as ready immediately and flush queued invocations.
+    const alreadyReady = this.earlyReadyPlugins.has(pluginId)
+    this.earlyReadyPlugins.delete(pluginId)
+    this.iframeSessions.set(pluginId, { window: iframeWindow, origin, ready: alreadyReady })
     // Send init message — use '*' because sandboxed iframes (without allow-same-origin)
     // have a null origin, so targeted postMessage would be silently dropped.
     const initMsg: PlatformToAppMessage = { type: 'init', pluginId }
     iframeWindow.postMessage(initMsg, '*')
+    if (alreadyReady) {
+      this.onIframeReady(pluginId)
+    }
   }
 
   unregisterIframe(pluginId: string) {
@@ -107,9 +115,13 @@ class PluginController {
 
   onIframeReady(pluginId: string) {
     const session = this.iframeSessions.get(pluginId)
-    if (session) {
-      session.ready = true
+    if (!session) {
+      // The iframe's React app sent 'ready' before the parent's load event fired.
+      // Stash it so registerIframe() can pick it up.
+      this.earlyReadyPlugins.add(pluginId)
+      return
     }
+    session.ready = true
     // Flush queued invocations
     const queued = this.invocationQueue.get(pluginId)
     if (queued) {
