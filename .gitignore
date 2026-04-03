@@ -6,3 +6,4 @@ out/
 dist/
 misc/
 memory-bank/
+.playwright-mcp/
