@@ -25,6 +25,7 @@ interface QueuedInvocation {
 const TOOL_TIMEOUT_MS = 30_000
 
 export type StateUpdateListener = (pluginId: string, state: Record<string, unknown>) => void
+export type PluginChangeListener = () => void
 
 class PluginController {
   private manifests = new Map<string, PluginManifest>()
@@ -34,6 +35,8 @@ class PluginController {
   private iframeSessions = new Map<string, IframeSession>()
   private invocationQueue = new Map<string, QueuedInvocation[]>()
   private stateUpdateListeners = new Set<StateUpdateListener>()
+  private changeListeners = new Set<PluginChangeListener>()
+  private activePlugins = new Set<string>()
 
   registerManifest(manifest: PluginManifest) {
     this.manifests.set(manifest.id, manifest)
@@ -65,6 +68,17 @@ class PluginController {
   onStateUpdate(listener: StateUpdateListener): () => void {
     this.stateUpdateListeners.add(listener)
     return () => this.stateUpdateListeners.delete(listener)
+  }
+
+  onChange(listener: PluginChangeListener): () => void {
+    this.changeListeners.add(listener)
+    return () => this.changeListeners.delete(listener)
+  }
+
+  private notifyChange() {
+    for (const listener of this.changeListeners) {
+      listener()
+    }
   }
 
   // --- Iframe lifecycle ---
@@ -190,6 +204,15 @@ class PluginController {
           inputSchema: jsonSchema(toolDef.inputSchema),
           execute: async (args: Record<string, unknown>) => {
             const pluginId = manifest.id
+
+            // Handle close tool directly — no iframe needed
+            if (toolDef.name === `${manifest.id}_close`) {
+              this.deactivatePlugin(pluginId)
+              return { success: true, message: `${manifest.name} closed.` }
+            }
+
+            // Re-activate plugin if it was closed
+            this.activatePlugin(pluginId)
             const toolCallId = `${toolDef.name}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 
             return await new Promise((resolve, reject) => {
@@ -247,14 +270,24 @@ class PluginController {
 
   // --- Active plugin tracking ---
 
-  getActivePluginIds(): string[] {
-    const ids: string[] = []
-    for (const state of this.pluginStates.values()) {
-      if (state.lastSnapshot !== null) {
-        ids.push(state.pluginId)
-      }
+  activatePlugin(pluginId: string) {
+    const wasActive = this.activePlugins.has(pluginId)
+    this.activePlugins.add(pluginId)
+    if (!wasActive) this.notifyChange()
+  }
+
+  deactivatePlugin(pluginId: string) {
+    this.activePlugins.delete(pluginId)
+    this.notifyChange()
+    this.unregisterIframe(pluginId)
+    const state = this.pluginStates.get(pluginId)
+    if (state) {
+      state.lastSnapshot = null
     }
-    return ids
+  }
+
+  getActivePluginIds(): string[] {
+    return [...this.activePlugins]
   }
 }
 

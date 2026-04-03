@@ -88,5 +88,13 @@ export const chessManifest: PluginManifest = {
         properties: {},
       },
     },
+    {
+      name: 'chess_close',
+      description: 'Close the chess app and remove it from the chat. Use when the user is done playing.',
+      inputSchema: {
+        type: 'object',
+        properties: {},
+      },
+    },
   ],
 }

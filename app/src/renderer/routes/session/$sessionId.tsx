@@ -2,7 +2,7 @@ import NiceModal from '@ebay/nice-modal-react'
 import { Button } from '@mantine/core'
 import type { Message, ModelProvider } from '@shared/types'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useStore } from 'zustand'
 import MessageList, { type MessageListRef } from '@/components/chat/MessageList'
@@ -167,21 +167,16 @@ function RouteComponent() {
     }
   }, [currentSession?.settings?.provider, currentSession?.settings?.modelId])
 
-  // Determine which plugins have been activated by tool calls in this session
-  const activePluginIds = useMemo(() => {
-    if (!currentSession) return []
-    const allMessages = getAllMessageList(currentSession)
-    const ids = new Set<string>()
-    for (const msg of allMessages) {
-      for (const part of msg.contentParts) {
-        if (part.type === 'tool-call' && pluginController.isPluginTool(part.toolName)) {
-          const manifest = pluginController.getManifestForTool(part.toolName)
-          if (manifest) ids.add(manifest.id)
-        }
-      }
-    }
-    return [...ids]
-  }, [currentSession])
+  // Subscribe to plugin activation/deactivation changes
+  const [, setPluginVersion] = useState(0)
+  useEffect(() => {
+    return pluginController.onChange(() => setPluginVersion((v) => v + 1))
+  }, [])
+  const activePluginIds = pluginController.getActivePluginIds()
+
+  const handleClosePlugin = useCallback((pluginId: string) => {
+    pluginController.deactivatePlugin(pluginId)
+  }, [])
 
   const hasActivePlugins = activePluginIds.length > 0
 
@@ -218,7 +213,7 @@ function RouteComponent() {
         {/* Plugin panel — takes up ~60% of the width */}
         <div className="flex flex-col h-full" style={{ flex: '0 0 60%' }}>
           {activePluginIds.map((pluginId) => (
-            <PluginSessionUI key={pluginId} pluginId={pluginId} />
+            <PluginSessionUI key={pluginId} pluginId={pluginId} onClose={() => handleClosePlugin(pluginId)} />
           ))}
         </div>
         {/* Chat panel — takes remaining ~40% */}
