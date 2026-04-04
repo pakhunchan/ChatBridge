@@ -63,6 +63,9 @@ export const PluginToolCallPill: FC<{ part: MessageToolCallPart }> = ({ part }) 
 
   return (
     <Stack gap={6} mb="xs">
+      {/* Rich Spotify search results — rendered above the pill like Ross's reference */}
+      {hasRichResults && <SpotifySearchResults results={spotifyResults.results} />}
+
       <UnstyledButton onClick={() => setExpanded((prev) => !prev)}>
         <Group
           gap={6}
@@ -107,9 +110,6 @@ export const PluginToolCallPill: FC<{ part: MessageToolCallPart }> = ({ part }) 
           />
         </Group>
       </UnstyledButton>
-
-      {/* Rich Spotify search results — shown inline without expand */}
-      {hasRichResults && <SpotifySearchResults results={spotifyResults.results} />}
 
       <Collapse in={expanded}>
         <Box

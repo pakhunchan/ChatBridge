@@ -196,6 +196,21 @@ Defined in `app/electron.vite.config.ts`:
 | `@`      | `src/renderer/`    | renderer, preload     |
 | `@shared`| `src/shared/`      | renderer only         |
 
+## Deployment
+
+Both the host app and plugins deploy to **Vercel**, triggered by pushing to `origin` (labs.gauntletai.com).
+
+| Component | Production URL | Source | Deploy trigger |
+|-----------|---------------|--------|----------------|
+| Host app  | `chatbridge.pakhunchan.com` | `app/` | Push to `origin main` |
+| Spotify plugin | `chatbridge-spotify.pakhunchan.com` | `plugins/spotify/` | Push to `origin main` |
+
+To deploy: commit changes and `git push origin main`.
+
+**Git remotes:**
+- `origin` — `ssh://git@labs.gauntletai.com:22022/pakchan/chatbridge.git` (primary, triggers Vercel)
+- `old-origin` — `https://github.com/pakhunchan/ChatBridge.git` (GitHub mirror)
+
 ## Gotchas
 
 - **pnpm only** — `engines` field enforces `pnpm >=10.17.0`. npm/yarn will fail.
