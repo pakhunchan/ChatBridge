@@ -10,7 +10,7 @@ const SCOPES = 'user-read-private user-read-email'
 const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID ?? 'da3c4341184e4ec6b75b7f3871fba1d1'
 
 // Use chatbox:// deep link in Electron, HTTPS callback in browser
-const isElectron = window.parent !== window || navigator.userAgent.includes('Electron')
+const isElectron = navigator.userAgent.includes('Electron')
 const REDIRECT_URI = isElectron
   ? 'chatbox://auth/spotify'
   : `${window.location.origin}/callback`
