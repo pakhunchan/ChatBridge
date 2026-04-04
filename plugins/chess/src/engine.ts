@@ -12,6 +12,7 @@ export interface GameState {
   isGameOver: boolean
   lastMove?: string
   difficulty: Difficulty
+  summary: string
 }
 
 export interface MoveResult extends GameState {
@@ -31,16 +32,30 @@ let playerColor: 'white' | 'black' = 'white'
 let difficulty: Difficulty = 'medium'
 
 export function getState(): GameState {
+  const turn = game.turn() === 'w' ? 'white' : 'black' as const
+  const moveNumber = Math.ceil(game.moveNumber())
+  const inCheck = game.inCheck()
+  const isCheckmate = game.isCheckmate()
+  const isStalemate = game.isStalemate()
+  const isDraw = game.isDraw()
+
+  let summary = `${turn} to move, move ${moveNumber}, ${difficulty}`
+  if (isCheckmate) summary = `Checkmate! ${turn === 'white' ? 'Black' : 'White'} wins.`
+  else if (isStalemate) summary = 'Stalemate - draw.'
+  else if (isDraw) summary = 'Draw.'
+  else if (inCheck) summary = `${turn} to move - in check! Move ${moveNumber}`
+
   return {
     fen: game.fen(),
-    turn: game.turn() === 'w' ? 'white' : 'black',
-    moveNumber: Math.ceil(game.moveNumber()),
-    inCheck: game.inCheck(),
-    isCheckmate: game.isCheckmate(),
-    isStalemate: game.isStalemate(),
-    isDraw: game.isDraw(),
+    turn,
+    moveNumber,
+    inCheck,
+    isCheckmate,
+    isStalemate,
+    isDraw,
     isGameOver: game.isGameOver(),
     difficulty,
+    summary,
   }
 }
 

@@ -266,14 +266,9 @@ class PluginController {
       if (!state.lastSnapshot) continue
       const manifest = this.manifests.get(state.pluginId)
       if (!manifest) continue
-      const snapshot = state.lastSnapshot
-      const parts: string[] = []
-      if (snapshot.fen) parts.push(`FEN: ${snapshot.fen}`)
-      if (snapshot.turn) parts.push(`Turn: ${snapshot.turn}`)
-      if (snapshot.isGameOver) parts.push('Game Over')
-      if (snapshot.inCheck) parts.push('In Check')
-      if (parts.length > 0) {
-        lines.push(`- ${manifest.name}: ${parts.join(', ')}`)
+      const summary = state.lastSnapshot.summary
+      if (typeof summary === 'string' && summary.length > 0) {
+        lines.push(`- ${manifest.name}: ${summary}`)
       }
     }
     if (lines.length === 0) return ''
