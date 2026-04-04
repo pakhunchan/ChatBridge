@@ -4,6 +4,32 @@ import { IconCheck, IconChevronDown, IconCircleXFilled, IconLoader, IconPuzzle }
 import { type FC, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { pluginController } from '@/packages/plugins/controller'
+import { SpotifySearchResults } from './SpotifySearchResults'
+
+// ─── Spotify search result detection ────────────────────────────────
+
+interface SpotifySearchResult {
+  results: Array<{
+    name: string
+    artists: string
+    uri: string
+    album?: string
+    duration_ms?: number
+    imageUrl?: string
+  }>
+  message?: string
+}
+
+function extractSpotifySearchResults(part: MessageToolCallPart): SpotifySearchResult | null {
+  if (part.toolName !== 'spotify_search') return null
+  const result = part.result as Record<string, unknown> | undefined
+  if (!result || typeof result !== 'object') return null
+  const items = result.results
+  if (!Array.isArray(items)) return null
+  return result as unknown as SpotifySearchResult
+}
+
+// ─── Component ──────────────────────────────────────────────────────
 
 export const PluginToolCallPill: FC<{ part: MessageToolCallPart }> = ({ part }) => {
   const { t } = useTranslation()
@@ -12,6 +38,9 @@ export const PluginToolCallPill: FC<{ part: MessageToolCallPart }> = ({ part }) 
 
   const isLoading = part.state === 'call'
   const isError = part.state === 'error'
+
+  const spotifyResults = !isLoading && !isError ? extractSpotifySearchResults(part) : null
+  const hasRichResults = spotifyResults !== null && spotifyResults.results.length > 0
 
   const bgColor = isError
     ? 'color-mix(in srgb, var(--chatbox-tint-error) 8%, transparent)'
@@ -29,6 +58,8 @@ export const PluginToolCallPill: FC<{ part: MessageToolCallPart }> = ({ part }) 
     : part.toolName.replaceAll('_', ' ')
 
   const label = manifest ? `${manifest.name}: ${displayName}` : displayName
+
+  const summary = hasRichResults ? `${spotifyResults.results.length} results` : undefined
 
   return (
     <Stack gap={6} mb="xs">
@@ -57,7 +88,14 @@ export const PluginToolCallPill: FC<{ part: MessageToolCallPart }> = ({ part }) 
           ) : isError ? (
             <IconCircleXFilled size={11} color="var(--chatbox-tint-error)" style={{ flexShrink: 0 }} />
           ) : (
-            <IconCheck size={11} color="var(--chatbox-tint-success)" style={{ flexShrink: 0 }} />
+            <>
+              <IconCheck size={11} color="var(--chatbox-tint-success)" style={{ flexShrink: 0 }} />
+              {summary && (
+                <Text size="xs" c="chatbox-tertiary" lh={1}>
+                  · {summary}
+                </Text>
+              )}
+            </>
           )}
           <IconChevronDown
             size={11}
@@ -69,6 +107,10 @@ export const PluginToolCallPill: FC<{ part: MessageToolCallPart }> = ({ part }) 
           />
         </Group>
       </UnstyledButton>
+
+      {/* Rich Spotify search results — shown inline without expand */}
+      {hasRichResults && <SpotifySearchResults results={spotifyResults.results} />}
+
       <Collapse in={expanded}>
         <Box
           ml={4}

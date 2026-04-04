@@ -33,6 +33,7 @@ interface SearchResult {
   uri: string
   album?: string
   duration_ms?: number
+  imageUrl?: string
 }
 
 // --- Constants ---
@@ -148,8 +149,14 @@ async function fetchOEmbed(uri: string): Promise<OEmbedResult | null> {
   }
 }
 
+// Cache of track metadata from search results so we don't rely on fragile oEmbed parsing
+const searchMetadataCache = new Map<string, { trackName: string; artistName: string }>()
+
 function parseOEmbedTitle(title: string): { trackName: string; artistName: string } {
-  // oEmbed title format: "Track Name by Artist Name"
+  // oEmbed title format varies:
+  //   "Track Name by Artist Name"
+  //   "Track Name - Album Name by Artist Name"
+  // Use lastIndexOf to handle "by" in track names
   const byIndex = title.lastIndexOf(' by ')
   if (byIndex > 0) {
     return {
@@ -157,7 +164,7 @@ function parseOEmbedTitle(title: string): { trackName: string; artistName: strin
       artistName: title.slice(byIndex + 4),
     }
   }
-  return { trackName: title, artistName: 'Unknown artist' }
+  return { trackName: title, artistName: '' }
 }
 
 // --- Authenticated API helper ---
@@ -210,17 +217,24 @@ function handlePlaybackUpdate(event: PlaybackUpdateEvent) {
   state.position = Math.round(position / 1000)
   state.duration = Math.round(duration / 1000)
 
-  // Detect URI change → refetch metadata
+  // Detect URI change → resolve metadata (prefer search cache, fallback to oEmbed)
   if (currentUri && currentUri !== state.currentUri) {
     state.currentUri = currentUri
-    fetchOEmbed(currentUri).then((result) => {
-      if (result) {
-        const { trackName, artistName } = parseOEmbedTitle(result.title)
-        state.trackName = trackName
-        state.artistName = artistName
-      }
+    const cached = searchMetadataCache.get(currentUri)
+    if (cached) {
+      state.trackName = cached.trackName
+      state.artistName = cached.artistName
       notifyStateChange()
-    })
+    } else {
+      fetchOEmbed(currentUri).then((result) => {
+        if (result) {
+          const { trackName, artistName } = parseOEmbedTitle(result.title)
+          state.trackName = trackName
+          state.artistName = artistName || 'Unknown artist'
+        }
+        notifyStateChange()
+      })
+    }
   } else {
     notifyStateChange()
   }
@@ -286,13 +300,23 @@ export async function search(args: {
 
   const items = data[`${type}s`]?.items ?? []
   for (const item of items) {
+    // Pick the smallest album art image (typically 64px) for thumbnail use
+    const images = item.album?.images ?? item.images ?? []
+    const thumbnail = images.length > 0 ? images[images.length - 1].url : undefined
+
     results.push({
       name: item.name,
       artists: item.artists?.map((a: { name: string }) => a.name).join(', ') ?? item.owner?.display_name ?? '',
       uri: item.uri,
       album: item.album?.name,
       duration_ms: item.duration_ms,
+      imageUrl: thumbnail,
     })
+  }
+
+  // Cache search metadata so play() can use accurate artist names
+  for (const r of results) {
+    searchMetadataCache.set(r.uri, { trackName: r.name, artistName: r.artists })
   }
 
   return {
@@ -309,15 +333,22 @@ export function play(args: { uri: string }) {
   state.currentUri = uri
   controller.loadUri(uri)
 
-  // Pre-fetch metadata
-  fetchOEmbed(uri).then((result) => {
-    if (result) {
-      const { trackName, artistName } = parseOEmbedTitle(result.title)
-      state.trackName = trackName
-      state.artistName = artistName
-      notifyStateChange()
-    }
-  })
+  // Resolve metadata — prefer search cache for accurate artist names
+  const cached = searchMetadataCache.get(uri)
+  if (cached) {
+    state.trackName = cached.trackName
+    state.artistName = cached.artistName
+    notifyStateChange()
+  } else {
+    fetchOEmbed(uri).then((result) => {
+      if (result) {
+        const { trackName, artistName } = parseOEmbedTitle(result.title)
+        state.trackName = trackName
+        state.artistName = artistName || 'Unknown artist'
+        notifyStateChange()
+      }
+    })
+  }
 
   return { success: true, message: `Loading ${uri} in player.` }
 }

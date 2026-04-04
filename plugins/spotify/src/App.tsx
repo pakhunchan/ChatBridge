@@ -144,11 +144,6 @@ export default function App() {
       {/* Spotify embed container */}
       <div ref={embedRef} style={{ width: '100%', maxWidth: 400 }} />
 
-      {/* Preview mode banner */}
-      <div style={styles.previewBanner}>
-        Preview mode — open in Spotify for full playback
-      </div>
-
       {/* Track info + Open in Spotify button */}
       {state.currentUri && (
         <div style={styles.trackBar}>
@@ -257,14 +252,6 @@ const styles: Record<string, React.CSSProperties> = {
   activateSubtext: { fontSize: 13, color: '#888' },
 
   // Player
-  previewBanner: {
-    fontSize: 11,
-    color: '#999',
-    background: '#222',
-    padding: '4px 12px',
-    borderRadius: 4,
-    textAlign: 'center',
-  },
   trackBar: {
     display: 'flex',
     alignItems: 'center',
