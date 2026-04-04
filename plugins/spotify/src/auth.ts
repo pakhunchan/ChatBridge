@@ -8,12 +8,12 @@ const TOKEN_ENDPOINT = 'https://accounts.spotify.com/api/token'
 const AUTH_ENDPOINT = 'https://accounts.spotify.com/authorize'
 const REDIRECT_URI = 'chatbox://auth/spotify'
 const SCOPES = 'user-read-private user-read-email'
+const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID ?? 'da3c4341184e4ec6b75b7f3871fba1d1'
 
 const STORAGE_KEYS = {
   accessToken: 'spotify_access_token',
   refreshToken: 'spotify_refresh_token',
   expiresAt: 'spotify_expires_at',
-  clientId: 'spotify_client_id',
   codeVerifier: 'spotify_code_verifier',
 } as const
 
@@ -44,14 +44,6 @@ async function generateCodeChallenge(verifier: string): Promise<string> {
 
 // --- Public API ---
 
-export function getClientId(): string | null {
-  return localStorage.getItem(STORAGE_KEYS.clientId)
-}
-
-export function setClientId(clientId: string) {
-  localStorage.setItem(STORAGE_KEYS.clientId, clientId)
-}
-
 export function getAccessToken(): string | null {
   const expiresAt = localStorage.getItem(STORAGE_KEYS.expiresAt)
   if (expiresAt && Date.now() >= Number(expiresAt)) {
@@ -65,16 +57,13 @@ export function isAuthenticated(): boolean {
 }
 
 export async function buildAuthUrl(): Promise<string> {
-  const clientId = getClientId()
-  if (!clientId) throw new Error('Spotify Client ID not set')
-
   const verifier = generateRandomString(64)
   localStorage.setItem(STORAGE_KEYS.codeVerifier, verifier)
 
   const challenge = await generateCodeChallenge(verifier)
 
   const params = new URLSearchParams({
-    client_id: clientId,
+    client_id: CLIENT_ID,
     response_type: 'code',
     redirect_uri: REDIRECT_URI,
     scope: SCOPES,
@@ -86,15 +75,14 @@ export async function buildAuthUrl(): Promise<string> {
 }
 
 export async function exchangeCode(code: string): Promise<void> {
-  const clientId = getClientId()
   const verifier = localStorage.getItem(STORAGE_KEYS.codeVerifier)
-  if (!clientId || !verifier) throw new Error('Missing client ID or code verifier')
+  if (!verifier) throw new Error('Missing code verifier')
 
   const response = await fetch(TOKEN_ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      client_id: clientId,
+      client_id: CLIENT_ID,
       grant_type: 'authorization_code',
       code,
       redirect_uri: REDIRECT_URI,
@@ -113,15 +101,14 @@ export async function exchangeCode(code: string): Promise<void> {
 }
 
 export async function refreshAccessToken(): Promise<boolean> {
-  const clientId = getClientId()
   const refreshToken = localStorage.getItem(STORAGE_KEYS.refreshToken)
-  if (!clientId || !refreshToken) return false
+  if (!refreshToken) return false
 
   const response = await fetch(TOKEN_ENDPOINT, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      client_id: clientId,
+      client_id: CLIENT_ID,
       grant_type: 'refresh_token',
       refresh_token: refreshToken,
     }),

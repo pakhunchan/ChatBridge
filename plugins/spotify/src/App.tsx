@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { buildAuthUrl, getClientId, setClientId } from './auth'
+import { buildAuthUrl } from './auth'
 import { initBridge, sendOpenUrl, sendStateUpdate } from './bridge'
 import {
   getEmbedHeight,
   getState,
   onStateChange,
   setActivated,
-  setAuthenticated,
   setController,
   type SpotifyState,
 } from './engine'
@@ -14,7 +13,6 @@ import type { SpotifyIFrameAPI } from './spotify-types'
 
 export default function App() {
   const [state, setState] = useState<SpotifyState>(getState())
-  const [clientIdInput, setClientIdInput] = useState(getClientId() ?? '')
   const embedRef = useRef<HTMLDivElement>(null)
   const controllerInitialized = useRef(false)
 
@@ -62,13 +60,9 @@ export default function App() {
   }, [state.isAuthenticated, state.isActivated])
 
   const handleSignIn = useCallback(async () => {
-    if (!clientIdInput.trim()) return
-    setClientId(clientIdInput.trim())
-    setAuthenticated(false) // will re-check after callback
-
     const url = await buildAuthUrl()
     sendOpenUrl(url)
-  }, [clientIdInput])
+  }, [])
 
   const handleActivate = useCallback(() => {
     setActivated()
@@ -96,28 +90,12 @@ export default function App() {
           </div>
           <div style={styles.authTitle}>Connect to Spotify</div>
           <div style={styles.authSubtext}>
-            Enter your Spotify app Client ID to get started.
-            <br />
-            <span style={styles.authNote}>
-              Register at developer.spotify.com and add <code style={styles.code}>chatbox://auth/spotify</code> as a redirect URI.
-            </span>
+            Sign in to search and play music.
           </div>
-          <input
-            type="text"
-            placeholder="Spotify Client ID"
-            value={clientIdInput}
-            onChange={(e) => setClientIdInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSignIn()}
-            style={styles.input}
-          />
           <button
             type="button"
             onClick={handleSignIn}
-            disabled={!clientIdInput.trim()}
-            style={{
-              ...styles.authButton,
-              opacity: clientIdInput.trim() ? 1 : 0.5,
-            }}
+            style={styles.authButton}
           >
             Sign in with Spotify
           </button>
