@@ -61,8 +61,10 @@ const state: SpotifyState = {
   duration: 0,
   embedSize: 'compact',
   isActivated: false,
-  summary: buildSummary(),
+  summary: '',
 }
+// Compute initial summary now that `state` is fully constructed
+state.summary = buildSummary()
 
 // --- Summary ---
 
