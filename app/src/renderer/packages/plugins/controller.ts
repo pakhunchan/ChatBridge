@@ -35,6 +35,7 @@ class PluginController {
   private iframeSessions = new Map<string, IframeSession>()
   private invocationQueue = new Map<string, QueuedInvocation[]>()
   private stateUpdateListeners = new Set<StateUpdateListener>()
+  private resizeListeners = new Set<(pluginId: string, height: number) => void>()
   private changeListeners = new Set<PluginChangeListener>()
   private activePlugins = new Set<string>()
   private earlyReadyPlugins = new Set<string>()
@@ -69,6 +70,11 @@ class PluginController {
   onStateUpdate(listener: StateUpdateListener): () => void {
     this.stateUpdateListeners.add(listener)
     return () => this.stateUpdateListeners.delete(listener)
+  }
+
+  onResize(listener: (pluginId: string, height: number) => void): () => void {
+    this.resizeListeners.add(listener)
+    return () => this.resizeListeners.delete(listener)
   }
 
   onChange(listener: PluginChangeListener): () => void {
@@ -198,6 +204,14 @@ class PluginController {
           }
           for (const listener of this.stateUpdateListeners) {
             listener(data.pluginId, stateRecord)
+          }
+        }
+        break
+      }
+      case 'resize': {
+        if (typeof data.pluginId === 'string' && typeof data.height === 'number') {
+          for (const listener of this.resizeListeners) {
+            listener(data.pluginId, data.height)
           }
         }
         break

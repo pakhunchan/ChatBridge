@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { pluginController } from '@/packages/plugins/controller'
 
 export function PluginSessionUI({ pluginId, onClose }: { pluginId: string; onClose: () => void }) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const manifest = pluginController.getManifest(pluginId)
+  const [height, setHeight] = useState<number | null>(null)
 
   useEffect(() => {
     const iframe = iframeRef.current
@@ -22,6 +23,12 @@ export function PluginSessionUI({ pluginId, onClose }: { pluginId: string; onClo
       pluginController.unregisterIframe(pluginId)
     }
   }, [pluginId, manifest])
+
+  useEffect(() => {
+    return pluginController.onResize((id, h) => {
+      if (id === pluginId) setHeight(h)
+    })
+  }, [pluginId])
 
   if (!manifest) return null
 
@@ -55,7 +62,8 @@ export function PluginSessionUI({ pluginId, onClose }: { pluginId: string; onClo
         src={manifest.iframeUrl}
         sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox"
         allow="encrypted-media"
-        className="w-full h-full border-none flex-1"
+        className="w-full border-none flex-1"
+        style={height ? { height, flex: 'none' } : undefined}
         title={manifest.name}
       />
     </div>
