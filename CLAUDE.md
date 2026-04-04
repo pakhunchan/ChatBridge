@@ -200,10 +200,12 @@ Defined in `app/electron.vite.config.ts`:
 
 Both the host app and plugins deploy to **Vercel**, triggered by pushing to `origin` (labs.gauntletai.com).
 
-| Component | Production URL | Source | Deploy trigger |
-|-----------|---------------|--------|----------------|
-| Host app  | `chatbridge.pakhunchan.com` | `app/` | Push to `origin main` |
-| Spotify plugin | `chatbridge-spotify.pakhunchan.com` | `plugins/spotify/` | Push to `origin main` |
+| Component | Production URL | Vercel Project | Source |
+|-----------|---------------|----------------|--------|
+| Host app  | `chatbridge.pakhunchan.com` | [chatbridge-app](https://vercel.com/pakhunchan-3528s-projects/chatbridge-app) | `app/` |
+| Spotify plugin | `chatbridge-spotify.pakhunchan.com` | [chatbridge-spotify](https://vercel.com/pakhunchan-3528s-projects/chatbridge-spotify) | `plugins/spotify/` |
+| Chess plugin | — | [chatbridge-chess](https://vercel.com/pakhunchan-3528s-projects/chatbridge-chess) | `plugins/chess/` |
+| Flashcards plugin | `flashcards.pakhunchan.com` | — | `../Flashcards` (external repo) |
 
 To deploy: commit changes and `git push origin main`.
 
@@ -221,3 +223,4 @@ To deploy: commit changes and `git push origin main`.
 - **`@` alias is renderer-scoped** — don't use `@` imports in `app/src/main/` or `app/src/shared/` code.
 - **All types use Zod schemas** — types are inferred via `z.infer<>`, not hand-written interfaces. Follow this pattern.
 - **Platform interface first** — any new IPC channels must be added to `app/src/renderer/platform/interfaces.ts` before implementing in desktop/web platform files.
+- **Flashcards plugin is external** — unlike chess/spotify which live in `plugins/`, the Flashcards bridge lives in the external `../Flashcards` Next.js app. Auth is self-contained (Firebase in-iframe), not managed by ChatBridge.
