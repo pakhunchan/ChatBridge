@@ -19,6 +19,16 @@ export function handleDeepLink(mainWindow: BrowserWindow, link: string) {
     mainWindow.webContents.send('navigate-to', `/settings/provider?import=${encodeURIComponent(encodedConfig)}`)
   }
 
+  // handle `chatbox://auth/{pluginId}?code=xxx` — OAuth callbacks for plugins
+  if (url.hostname === 'auth') {
+    const pluginId = url.pathname.replace(/^\//, '')
+    if (pluginId) {
+      const params = url.searchParams.toString()
+      log.info(`🔑 Plugin auth callback for ${pluginId}:`, params)
+      mainWindow.webContents.send('navigate-to', `/auth/${pluginId}?${params}`)
+    }
+  }
+
   // handle `chatbox://auth/callback?ticket_id=xxx&status=success`
   // // 不需要，实际跳回到 app 后业务hooks useLogin 会处理后续动作
   // if (url.hostname === 'auth' && url.pathname === '/callback') {

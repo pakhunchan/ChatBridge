@@ -10,7 +10,8 @@ export const flashcardsManifest: PluginManifest = {
   tools: [
     {
       name: 'flashcards_create_deck',
-      description: 'Create a new flashcard deck with a name and cards. Each card has a front (question) and back (answer).',
+      description:
+        'Create a new flashcard deck with a name and cards. Each card has a front (question) and back (answer).',
       inputSchema: {
         type: 'object',
         properties: {

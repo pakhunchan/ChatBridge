@@ -1,6 +1,6 @@
 import type { ToolSet } from 'ai'
 import { jsonSchema, tool } from 'ai'
-import type { PlatformToAppMessage } from './protocol'
+import type { AuthCallbackMessage, PlatformToAppMessage } from './protocol'
 import type { PluginManifest, PluginState } from './types'
 
 interface PendingCall {
@@ -202,7 +202,37 @@ class PluginController {
         }
         break
       }
+      case 'open-url': {
+        if (typeof data.url === 'string') {
+          this.openUrlHandler?.(data.url)
+        }
+        break
+      }
     }
+  }
+
+  // --- Open URL handler (set by platform integration) ---
+
+  private openUrlHandler: ((url: string) => void) | null = null
+
+  onOpenUrl(handler: (url: string) => void) {
+    this.openUrlHandler = handler
+  }
+
+  // --- Auth callback forwarding ---
+
+  forwardAuthCallback(pluginId: string, params: Record<string, string>) {
+    const session = this.iframeSessions.get(pluginId)
+    if (!session) {
+      console.warn(`[plugin] No iframe session for ${pluginId}, cannot forward auth callback`)
+      return
+    }
+    const msg: AuthCallbackMessage = {
+      type: 'auth-callback',
+      pluginId,
+      params,
+    }
+    session.window.postMessage(msg, '*')
   }
 
   // --- Tool execution ---

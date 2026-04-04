@@ -19,7 +19,14 @@ export interface ToolInvokeMessage {
   args: Record<string, unknown>
 }
 
-export type PlatformToAppMessage = InitMessage | ToolInvokeMessage
+/** Sent when a plugin OAuth callback arrives via deep link */
+export interface AuthCallbackMessage {
+  type: 'auth-callback'
+  pluginId: string
+  params: Record<string, string>
+}
+
+export type PlatformToAppMessage = InitMessage | ToolInvokeMessage | AuthCallbackMessage
 
 // --- App → Platform messages ---
 
@@ -60,9 +67,16 @@ export interface ResizeMessage {
   height: number
 }
 
+/** Sent by the app to request the host to open a URL in the system browser */
+export interface OpenUrlMessage {
+  type: 'open-url'
+  url: string
+}
+
 export type AppToPlatformMessage =
   | ReadyMessage
   | ToolResultMessage
   | ToolErrorMessage
   | StateUpdateMessage
   | ResizeMessage
+  | OpenUrlMessage

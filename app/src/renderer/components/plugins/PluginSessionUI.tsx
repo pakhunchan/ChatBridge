@@ -54,6 +54,7 @@ export function PluginSessionUI({ pluginId, onClose }: { pluginId: string; onClo
         ref={iframeRef}
         src={manifest.iframeUrl}
         sandbox="allow-scripts allow-forms allow-same-origin"
+        allow="encrypted-media"
         className="w-full h-full border-none flex-1"
         title={manifest.name}
       />
