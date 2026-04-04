@@ -39,8 +39,8 @@ interface SearchResult {
 // --- Constants ---
 
 const EMBED_HEIGHTS: Record<SpotifyState['embedSize'], number> = {
-  compact: 80,
-  list: 152,
+  compact: 152,
+  list: 232,
   full: 352,
 }
 
@@ -60,7 +60,7 @@ const state: SpotifyState = {
   isPaused: true,
   position: 0,
   duration: 0,
-  embedSize: 'compact',
+  embedSize: 'full',
   isActivated: false,
   summary: '',
 }

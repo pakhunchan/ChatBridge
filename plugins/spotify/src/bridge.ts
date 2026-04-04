@@ -4,6 +4,7 @@
  */
 import { exchangeCode } from './auth'
 import {
+  getEmbedHeight,
   getPlaybackState,
   getState,
   openInApp,
@@ -110,5 +111,13 @@ export function initBridge() {
 
   // Signal to the platform that we're ready
   sendToParent({ type: 'ready', pluginId: 'spotify' })
+
+  // Send initial resize so the host applies a proper height immediately
+  sendToParent({
+    type: 'resize',
+    pluginId: 'spotify',
+    height: getEmbedHeight(),
+  })
+
   console.info('[spotify-plugin] Bridge initialized')
 }
