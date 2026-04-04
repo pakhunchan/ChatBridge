@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { buildAuthUrl } from './auth'
+import { buildAuthUrl, exchangeCode } from './auth'
 import { initBridge, sendOpenUrl, sendStateUpdate } from './bridge'
 import {
   getEmbedHeight,
   getState,
   onStateChange,
   setActivated,
+  setAuthenticated,
   setController,
   type SpotifyState,
 } from './engine'
@@ -20,6 +21,22 @@ export default function App() {
   useEffect(() => {
     initBridge()
     onStateChange((newState) => setState({ ...newState }))
+  }, [])
+
+  // Handle OAuth callback when loaded at /callback?code=...
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const code = params.get('code')
+    if (code) {
+      // Clean URL so the code isn't retried on refresh
+      window.history.replaceState({}, '', '/')
+      exchangeCode(code).then(() => {
+        setAuthenticated(true)
+        sendStateUpdate()
+      }).catch((err) => {
+        console.error('[spotify] OAuth callback exchange failed:', err)
+      })
+    }
   }, [])
 
   // Load Spotify iFrame API script
