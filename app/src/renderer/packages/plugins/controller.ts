@@ -43,12 +43,19 @@ class PluginController {
   registerManifest(manifest: PluginManifest) {
     this.manifests.set(manifest.id, manifest)
     for (const toolDef of manifest.tools) {
+      const existingPluginId = this.toolToPlugin.get(toolDef.name)
+      if (existingPluginId && existingPluginId !== manifest.id) {
+        console.warn(
+          `[plugin] Tool name collision: '${toolDef.name}' already registered by '${existingPluginId}', overwriting with '${manifest.id}'`
+        )
+      }
       this.toolToPlugin.set(toolDef.name, manifest.id)
     }
     this.pluginStates.set(manifest.id, {
       pluginId: manifest.id,
       lastSnapshot: null,
     })
+    this.notifyChange()
   }
 
   isPluginTool(toolName: string): boolean {
